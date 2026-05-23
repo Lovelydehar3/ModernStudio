@@ -1,19 +1,18 @@
-const USER_KEY = "modern_studio_admin_user";
+import { secureStorage } from "../utils/secureStorage";
 
+/**
+ * Admin Auth Store
+ * Uses secure storage for non-sensitive user profile data
+ * Authentication tokens are stored in httpOnly cookies on the server
+ */
 export const authStore = {
   getUser() {
-    const value = localStorage.getItem(USER_KEY);
-    if (!value) return null;
-    try {
-      return JSON.parse(value);
-    } catch {
-      return null;
-    }
+    return secureStorage.admin.get();
   },
   setUser(user) {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    secureStorage.admin.set(user);
   },
   clearUser() {
-    localStorage.removeItem(USER_KEY);
+    secureStorage.admin.clear();
   }
 };

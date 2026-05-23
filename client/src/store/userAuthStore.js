@@ -1,18 +1,18 @@
-const USER_KEY = "modern_studio_user";
+import { secureStorage } from "../utils/secureStorage";
 
+/**
+ * User Auth Store
+ * Uses secure storage for non-sensitive user profile data
+ * Authentication tokens are stored in httpOnly cookies on the server
+ */
 export const userAuthStore = {
   getUser() {
-    try {
-      const raw = localStorage.getItem(USER_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
+    return secureStorage.user.get();
   },
   setUser(user) {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    secureStorage.user.set(user);
   },
   clearUser() {
-    localStorage.removeItem(USER_KEY);
+    secureStorage.user.clear();
   }
 };

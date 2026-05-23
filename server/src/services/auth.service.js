@@ -193,10 +193,26 @@ const verifyRegistrationOtp = async ({ email, otp }) => {
 
 const loginWithPassword = async ({ email, password, remember = false }) => {
   const normalizedEmail = normalizeEmail(email);
-  const user = await User.findOne({ email: normalizedEmail, isActive: true }).select("+passwordHash");
+  const user = await User.findOne({ email: normalizedEmail, isActive: true }).select("+passwordHash +loginAttempts +lockUntil");
 
+  // Generic error message to prevent user enumeration
+  const genericError = new ApiError(401, "Invalid email or password.");
+  
   if (!user) {
-    throw new ApiError(404, "Account does not exist");
+    // Perform a dummy hash to prevent timing attacks
+    await bcrypt.compare(password, "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj8YKFqOk0zK");
+    throw genericError;
+  }
+
+  // Check if account is locked
+  if (user.loginAttempts !== undefined && user.loginAttempts >= 5) {
+    if (user.lockUntil && user.lockUntil > new Date()) {
+      const waitMinutes = Math.ceil((user.lockUntil - new Date()) / 60000);
+      throw new ApiError(429, `Account temporarily locked. Try again in ${waitMinutes} minute(s).`);
+    }
+    // Lock expired, reset attempts
+    user.loginAttempts = 0;
+    user.lockUntil = undefined;
   }
 
   if (!user.passwordHash) {
@@ -205,13 +221,27 @@ const loginWithPassword = async ({ email, password, remember = false }) => {
 
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
-    throw new ApiError(401, "Incorrect password");
+    // Increment login attempts
+    user.loginAttempts = (user.loginAttempts || 0) + 1;
+    
+    // Lock account after 5 failed attempts for 15 minutes
+    if (user.loginAttempts >= 5) {
+      user.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+    }
+    await user.save();
+    throw genericError;
   }
 
   if (!user.isEmailVerified) {
     throw new ApiError(403, "Please verify your email first");
   }
 
+  // Reset login attempts on successful login
+  if (user.loginAttempts > 0 || user.lockUntil) {
+    user.loginAttempts = 0;
+    user.lockUntil = undefined;
+  }
+  
   user.lastLoginAt = new Date();
   await user.save();
 
@@ -323,6 +353,8 @@ const resetPasswordWithToken = async ({ email, token, password }) => {
   await user.setPassword(password);
   user.authProvider = "local";
   user.isEmailVerified = true;
+  user.passwordChangedAt = new Date();
+  user.lastPasswordResetAt = new Date();
   await user.save();
 
   resetToken.usedAt = new Date();
@@ -347,9 +379,17 @@ const getAuthenticatedUser = async (token) => {
     throw new ApiError(401, "Invalid or expired token.");
   }
 
-  const user = await User.findById(decoded.userId).lean();
+  const user = await User.findById(decoded.userId).select("+passwordChangedAt").lean();
   if (!user || !user.isActive) {
     throw new ApiError(401, "Invalid or inactive user.");
+  }
+
+  // Invalidate session if password was changed after token was issued
+  if (user.passwordChangedAt) {
+    const passwordChangedTime = Math.floor(user.passwordChangedAt.getTime() / 1000);
+    if (decoded.iat < passwordChangedTime) {
+      throw new ApiError(401, "Session expired. Please log in again.");
+    }
   }
 
   return user;

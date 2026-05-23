@@ -12,9 +12,21 @@ const {
   setAuthCookie,
   clearAuthCookie
 } = require("../services/auth.service");
+const {
+  logSuccessfulLogin,
+  logLogout,
+  logSecurityEvent,
+  SECURITY_EVENTS
+} = require("../utils/securityLogger");
 
 const register = asyncHandler(async (req, res) => {
   const pending = await startRegistration(req.body);
+  logSecurityEvent(
+    SECURITY_EVENTS.REGISTER_START,
+    { email: req.body.email },
+    req.ip,
+    req.get("User-Agent")
+  );
   return ApiResponse.success(
     res,
     "Verification code sent to your email.",
@@ -40,6 +52,13 @@ const verifyEmailOtp = asyncHandler(async (req, res) => {
   const user = await verifyRegistrationOtp(req.body);
   setAuthCookie(res, user, { remember: true });
 
+  logSecurityEvent(
+    SECURITY_EVENTS.REGISTER_COMPLETE,
+    { userId: user._id, email: user.email },
+    req.ip,
+    req.get("User-Agent")
+  );
+
   return ApiResponse.success(
     res,
     "Email verified. Account created successfully.",
@@ -51,6 +70,8 @@ const verifyEmailOtp = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
   const { user, remember } = await loginWithPassword(req.body);
   setAuthCookie(res, user, { remember });
+
+  logSuccessfulLogin(user._id, user.email, req.ip, req.get("User-Agent"));
 
   return ApiResponse.success(
     res,
@@ -88,7 +109,11 @@ const csrf = asyncHandler(async (_req, res) => {
   return ApiResponse.success(res, "CSRF token ready.", null, 200);
 });
 
-const logout = asyncHandler(async (_req, res) => {
+const logout = asyncHandler(async (req, res) => {
+  // Log the logout if user is authenticated
+  if (req.authUser) {
+    logLogout(req.authUser.id, req.ip, req.get("User-Agent"));
+  }
   clearAuthCookie(res);
   return ApiResponse.success(res, "Logged out successfully.", null, 200);
 });

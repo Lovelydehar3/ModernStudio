@@ -8,7 +8,8 @@ import {
   validateName,
   validatePassword,
   validatePhone,
-  validateOtp
+  validateOtp,
+  validateConfirmPassword
 } from "../lib/validators";
 
 const STEPS = {
@@ -85,7 +86,7 @@ export default function useAuthFlow() {
       validateEmail(email),
       validatePhone(phone),
       validatePassword(password),
-      password !== confirmPassword ? "Passwords do not match." : null
+      validateConfirmPassword(password, confirmPassword)
     );
 
     if (error) {

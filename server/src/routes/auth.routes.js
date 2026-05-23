@@ -33,6 +33,16 @@ const loginLimiter = rateLimit({
   max: 5,
   message: { success: false, message: "Too many login attempts. Try again in 15 minutes." },
   standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false // Count all requests, successful or not
+});
+
+// Stricter rate limiting for registration: 3 per hour to prevent spam
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: { success: false, message: "Too many registration attempts. Try again in 1 hour." },
+  standardHeaders: true,
   legacyHeaders: false
 });
 
@@ -44,8 +54,17 @@ const authActionLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Rate limiter for logout to prevent abuse
+const logoutLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { success: false, message: "Too many logout requests." },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // Public auth routes
-router.post("/register", authActionLimiter, validate(registerSchema), register);
+router.post("/register", registerLimiter, validate(registerSchema), register);
 router.post("/send-verification-otp", authActionLimiter, validate(emailSchema), sendVerificationOtp);
 router.post("/resend-verification-otp", authActionLimiter, validate(emailSchema), sendVerificationOtp);
 router.post("/verify-email-otp", authActionLimiter, validate(verifyEmailSchema), verifyEmailOtp);
@@ -58,6 +77,6 @@ router.get("/csrf", csrf);
 
 // Protected routes
 router.get("/me", authMiddleware, me);
-router.post("/logout", logout);
+router.post("/logout", logoutLimiter, logout);
 
 module.exports = router;

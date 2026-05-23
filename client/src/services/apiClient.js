@@ -4,15 +4,24 @@ import { userAuthStore } from "../store/userAuthStore";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1";
 
+// Secure CSRF token retrieval with proper cookie parsing
 const getCsrfToken = () => {
-  const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
-  return match ? match[1] : "";
+  try {
+    const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+    return match ? match[1] : "";
+  } catch {
+    return "";
+  }
 };
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
-  timeout: Number(import.meta.env.VITE_API_TIMEOUT || 6000)
+  timeout: Number(import.meta.env.VITE_API_TIMEOUT || 6000),
+  // Set secure defaults
+  headers: {
+    "Content-Type": "application/json"
+  }
 });
 
 const csrfClient = axios.create({
@@ -31,32 +40,64 @@ const getRequestKey = (url, params = {}) => {
   return `GET:${url}${paramString ? `?${paramString}` : ""}`;
 };
 
-const ensureCsrfToken = async () => {
+// Fetch CSRF token with retry logic
+const ensureCsrfToken = async (retries = 2) => {
   const existing = getCsrfToken();
   if (existing) return existing;
 
-  csrfRequest = csrfRequest || csrfClient.get("/auth/csrf").finally(() => {
-    csrfRequest = null;
-  });
-  await csrfRequest;
-  return getCsrfToken();
+  try {
+    csrfRequest = csrfRequest || csrfClient.get("/auth/csrf").finally(() => {
+      csrfRequest = null;
+    });
+    await csrfRequest;
+    const token = getCsrfToken();
+    if (!token && retries > 0) {
+      // Retry once if token not set
+      return ensureCsrfToken(retries - 1);
+    }
+    return token;
+  } catch (error) {
+    console.error("Failed to fetch CSRF token:", error.message);
+    return "";
+  }
 };
 
+// Request interceptor for CSRF protection
 apiClient.interceptors.request.use(async (config) => {
   if (["post", "put", "patch", "delete"].includes(config.method)) {
     const token = await ensureCsrfToken();
-    config.headers["X-CSRF-Token"] = token;
+    if (token) {
+      config.headers["X-CSRF-Token"] = token;
+    }
   }
   return config;
 });
 
+// Response interceptor for error handling and security
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error?.response?.status === 401) {
+    const status = error?.response?.status;
+    
+    // Handle authentication errors
+    if (status === 401) {
+      // Clear user data on authentication failure
       authStore.clearUser();
       userAuthStore.clearUser();
+      
+      // Redirect to login if not already there
+      if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+        // Store intended destination for post-login redirect
+        sessionStorage.setItem("redirectAfterLogin", window.location.pathname);
+      }
     }
+    
+    // Handle CSRF errors - refresh page to get new token
+    if (status === 403 && error?.response?.data?.message?.includes("CSRF")) {
+      // Clear corrupted cookies and refresh
+      document.cookie = "csrf_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+    }
+    
     return Promise.reject(error);
   }
 );
