@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../components/ui/Card";
 import Loader from "../../components/common/Loader";
+import Skeleton, { StatCardSkeleton } from "../../components/ui/Skeleton";
 import StatusPill from "../../components/admin/StatusPill";
 import { dashboardApi } from "../../services/dashboardApi";
 import { formatDateTime } from "../../lib/formatters";
@@ -56,7 +57,37 @@ function DashboardPage() {
     fetchStats();
   }, []);
 
-  if (isLoading) return <Loader label="Loading dashboard..." />;
+  if (isLoading) {
+    return (
+      <div>
+        {/* Header */}
+        <div className="mb-8 flex items-center gap-3">
+          <Skeleton className="h-11 w-11 rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8">
+          <Skeleton className="mb-4 h-4 w-28" />
+          <div className="flex flex-wrap gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-11 w-36 rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const recentBookings = stats?.recentBookings || [];
 

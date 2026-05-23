@@ -4,8 +4,11 @@ import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import { homeApi } from "../../services/homeApi";
 import { extractApiError } from "../../lib/formatters";
+import { useToast } from "../../components/ui/ToastContext";
+import { CardSkeleton } from "../../components/ui/Skeleton";
 
 function HomeContentPage() {
+  const { showToast } = useToast();
   const [form, setForm] = useState({
     heroTitle: "",
     heroSubtitle: "",
@@ -35,14 +38,14 @@ function HomeContentPage() {
           sectionBlocksText: JSON.stringify(data.sectionBlocks || {}, null, 2)
         });
       } catch (error) {
-        window.alert(extractApiError(error));
+        showToast(extractApiError(error), "error");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [showToast]);
 
   const handleSave = async (event) => {
     event.preventDefault();
@@ -61,19 +64,29 @@ function HomeContentPage() {
       };
 
       await homeApi.update(payload);
-      window.alert("Home content updated.");
+      showToast("Home content updated successfully", "success");
     } catch (error) {
       if (error instanceof SyntaxError) {
-        window.alert("Invalid JSON in stats or sectionBlocks.");
+        showToast("Invalid JSON in stats or sectionBlocks.", "error");
       } else {
-        window.alert(extractApiError(error));
+        showToast(extractApiError(error), "error");
       }
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (isLoading) return <Card>Loading home content...</Card>;
+  if (isLoading) {
+    return (
+      <div>
+        <h2 className="font-heading text-5xl uppercase">Manage Homepage Content</h2>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">All homepage text and section blocks are editable here.</p>
+        <div className="mt-6">
+          <CardSkeleton />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

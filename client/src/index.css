@@ -21,6 +21,7 @@
   --accent-sage: #B7C4B2;
   --accent-peach: #E6B18A;
   --primary-gradient: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+  --navbar-height: 80px;
 }
 
 * {

@@ -59,6 +59,23 @@ function reducer(state, action) {
 
 const firstError = (...messages) => messages.find(Boolean) || null;
 
+/**
+ * Gets the post-login redirect path from sessionStorage, then clears it.
+ * Falls back to /booking if no redirect is saved.
+ */
+const consumeRedirectPath = () => {
+  try {
+    const saved = sessionStorage.getItem("redirectAfterLogin");
+    if (saved) {
+      sessionStorage.removeItem("redirectAfterLogin");
+      return saved;
+    }
+  } catch {
+    // sessionStorage not available (private browsing, etc.)
+  }
+  return "/booking";
+};
+
 export default function useAuthFlow() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const navigate = useNavigate();
@@ -126,7 +143,8 @@ export default function useAuthFlow() {
       const response = await authApi.verifyEmailOtp({ email: email.trim(), otp: otp.trim() });
       const user = response.data.data?.user;
       userAuthStore.setUser(user);
-      navigate("/booking");
+      // Redirect to saved page or /booking after successful registration
+      navigate(consumeRedirectPath(), { replace: true });
     } catch (err) {
       dispatch({ type: "SET_ERROR", message: extractApiError(err) });
     }
@@ -145,7 +163,8 @@ export default function useAuthFlow() {
       const response = await authApi.login({ email: email.trim(), password, remember: Boolean(remember) });
       const user = response.data.data?.user;
       userAuthStore.setUser(user);
-      navigate("/booking");
+      // Redirect to saved page or /booking after successful login
+      navigate(consumeRedirectPath(), { replace: true });
     } catch (err) {
       dispatch({ type: "SET_ERROR", message: extractApiError(err) });
     }

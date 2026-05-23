@@ -39,12 +39,21 @@ const GlassAuthPanel = memo(function GlassAuthPanel({
 
   const handleGoogleSuccess = useCallback((data) => {
     userAuthStore.setUser(data.user);
-    navigate("/booking");
+    // Use saved redirect path or fall back to /booking
+    const savedPath = (() => {
+      try {
+        const p = sessionStorage.getItem("redirectAfterLogin");
+        if (p) { sessionStorage.removeItem("redirectAfterLogin"); return p; }
+      } catch { /* ignore */ }
+      return "/booking";
+    })();
+    navigate(savedPath, { replace: true });
   }, [navigate]);
 
   const handleGoogleError = useCallback((message) => {
     setError(message);
   }, [setError]);
+
 
   const contentRef = useRef(null);
   const prevStepRef = useRef(step);

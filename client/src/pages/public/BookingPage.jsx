@@ -186,7 +186,13 @@ function BookingPage() {
             <p className="text-[var(--text-secondary)] mb-6">
               Please sign in to your account to book a session with Arun.
             </p>
-            <Link to="/login">
+            <Link to="/login" onClick={() => {
+              try {
+                sessionStorage.setItem("redirectAfterLogin", window.location.pathname);
+              } catch (err) {
+                console.warn("sessionStorage failed:", err);
+              }
+            }}>
               <Button className="px-8">Sign In</Button>
             </Link>
           </Card>

@@ -6,6 +6,8 @@ import CrudFormDrawer from "../../components/admin/CrudFormDrawer";
 import { mediaApi } from "../../services/mediaApi";
 import { extractApiError } from "../../lib/formatters";
 import { Copy, Trash2, Edit3, Upload, Image, Film, Check, ExternalLink, CheckSquare, Square } from "lucide-react";
+import { useToast } from "../../components/ui/ToastContext";
+import Skeleton from "../../components/ui/Skeleton";
 
 const CATEGORIES = [
   "all", "home", "films",
@@ -39,6 +41,7 @@ const defaultForm = {
 };
 
 function MediaPage() {
+  const { showToast } = useToast();
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -53,6 +56,8 @@ function MediaPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) => {
@@ -71,16 +76,21 @@ function MediaPage() {
     }
   };
 
-  const bulkDelete = async () => {
+  const bulkDelete = () => {
     if (!selectedIds.size) return;
+    setBulkDeleteConfirmOpen(true);
+  };
+
+  const bulkDeleteConfirm = async () => {
     const count = selectedIds.size;
-    if (!window.confirm(`Delete ${count} item${count > 1 ? "s" : ""}? This cannot be undone.`)) return;
     try {
       await Promise.all([...selectedIds].map((id) => mediaApi.remove(id)));
+      showToast(`Successfully deleted ${count} item${count > 1 ? "s" : ""}`, "success");
       setSelectedIds(new Set());
+      setBulkDeleteConfirmOpen(false);
       fetchRows();
     } catch (error) {
-      window.alert(extractApiError(error));
+      showToast(extractApiError(error), "error");
     }
   };
 
@@ -92,11 +102,11 @@ function MediaPage() {
       const response = await mediaApi.getAdmin(params);
       setRows(response.data.data);
     } catch (error) {
-      window.alert(extractApiError(error));
+      showToast(extractApiError(error), "error");
     } finally {
       setIsLoading(false);
     }
-  }, [filterCategory, filterType]);
+  }, [filterCategory, filterType, showToast]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -117,12 +127,12 @@ function MediaPage() {
     if (!file) return;
 
     if (!ACCEPTED_UPLOAD_TYPES.has(file.type)) {
-      window.alert("Please choose a JPG, PNG, WEBP, AVIF, MP4, WEBM, MOV, or AVI file.");
+      showToast("Please choose a JPG, PNG, WEBP, AVIF, MP4, WEBM, MOV, or AVI file.", "error");
       return;
     }
 
     if (file.size > MAX_UPLOAD_BYTES) {
-      window.alert("File is too large. Upload files up to 100 MB.");
+      showToast("File is too large. Upload files up to 100 MB.", "error");
       return;
     }
 
@@ -186,20 +196,26 @@ function MediaPage() {
     setDrawerOpen(true);
   };
 
-  const handleDelete = async (row) => {
-    if (!window.confirm(`Delete media "${row.title}"?`)) return;
+  const handleDelete = (row) => {
+    setDeleteTarget(row);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
     try {
-      await mediaApi.remove(row._id);
+      await mediaApi.remove(deleteTarget._id);
+      showToast("Media deleted successfully", "success");
+      setDeleteTarget(null);
       await fetchRows();
     } catch (error) {
-      window.alert(extractApiError(error));
+      showToast(extractApiError(error), "error");
     }
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!editingRow && !selectedFile) {
-      window.alert("Please choose a photo or video file to upload.");
+      showToast("Please choose a photo or video file to upload.", "error");
       return;
     }
 
@@ -255,7 +271,7 @@ function MediaPage() {
       setUploadProgress(0);
       await fetchRows();
     } catch (error) {
-      window.alert(extractApiError(error));
+      showToast(extractApiError(error), "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -265,9 +281,10 @@ function MediaPage() {
     try {
       await navigator.clipboard.writeText(url);
       setCopiedId(id);
+      showToast("URL copied to clipboard!", "success");
       setTimeout(() => setCopiedId(""), 2000);
     } catch {
-      window.prompt("Copy this URL:", url);
+      showToast("Failed to copy. URL: " + url, "warning");
     }
   };
 
@@ -326,22 +343,31 @@ function MediaPage() {
         ))}
       </div>
 
-      {/* Loading */}
-      {isLoading && <Card>Loading media...</Card>}
-
-      {/* Empty state */}
-      {!isLoading && rows.length === 0 && (
-        <Card>
+      {/* Loading & Grid */}
+      {isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-8">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="overflow-hidden rounded-2xl border border-[var(--accent-pink)]/10 bg-[var(--surface)] p-0">
+              <Skeleton className="aspect-[4/3] w-full rounded-none" />
+              <div className="p-4 space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-3 w-12" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <Card className="mb-8">
           <div className="flex flex-col items-center gap-3 py-10 text-center">
             <Image className="h-12 w-12 text-[var(--text-muted)]" />
             <p className="text-sm text-[var(--text-muted)]">No media found. Upload your first asset.</p>
           </div>
         </Card>
-      )}
-
-      {/* Preview Grid */}
-      {!isLoading && rows.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-8">
           {rows.map((item) => (
             <div
               key={item._id}
@@ -660,6 +686,60 @@ function MediaPage() {
           </Button>
         </form>
       </CrudFormDrawer>
+
+      {/* Single Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} aria-hidden="true" />
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6 shadow-2xl">
+            <h3 className="font-heading text-xl uppercase tracking-wider text-[var(--text-primary)]">Delete Media</h3>
+            <p className="mt-3 text-sm text-[var(--text-secondary)]">
+              Are you sure you want to delete the media asset <strong className="text-[var(--text-primary)]">{deleteTarget.title}</strong>? This action cannot be undone.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 rounded-xl border border-[var(--card-border)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-all duration-300 hover:bg-[var(--card-border)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="flex-1 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-red-400 transition-all duration-300 hover:bg-red-500/20"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {bulkDeleteConfirmOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setBulkDeleteConfirmOpen(false)} aria-hidden="true" />
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6 shadow-2xl">
+            <h3 className="font-heading text-xl uppercase tracking-wider text-[var(--text-primary)]">Bulk Delete</h3>
+            <p className="mt-3 text-sm text-[var(--text-secondary)]">
+              Are you sure you want to delete the <strong className="text-[var(--text-primary)]">{selectedIds.size}</strong> selected media assets? This action cannot be undone.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setBulkDeleteConfirmOpen(false)}
+                className="flex-1 rounded-xl border border-[var(--card-border)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-all duration-300 hover:bg-[var(--card-border)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={bulkDeleteConfirm}
+                className="flex-1 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-red-400 transition-all duration-300 hover:bg-red-500/20"
+              >
+                Delete All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -9,7 +9,7 @@ function PublicLayout() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <Navbar />
-      <main className="pt-20">
+      <main className="pt-[var(--navbar-height)]">
         <Outlet />
       </main>
       <Footer />

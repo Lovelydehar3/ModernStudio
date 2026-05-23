@@ -1,7 +1,6 @@
 const env = require("../config/env");
 const ApiError = require("../utils/ApiError");
-const { getAuthenticatedUser } = require("../services/auth.service");
-const { sanitizeUser } = require("../utils/authSecurity");
+const { getAuthenticatedUser, sanitizeUser } = require("../services/auth.service");
 
 const extractToken = (req) => req.cookies?.[env.authCookieName] || null;
 

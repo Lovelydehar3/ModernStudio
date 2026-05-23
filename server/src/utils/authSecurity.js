@@ -5,7 +5,7 @@ const env = require("../config/env");
 const OTP_LENGTH = 6;
 const OTP_TTL_MINUTES = 10;
 const REGISTRATION_TTL_MINUTES = 30;
-const RESET_TOKEN_TTL_MINUTES = 3;
+const RESET_TOKEN_TTL_MINUTES = 15;
 
 const normalizeEmail = (email = "") => email.trim().toLowerCase();
 

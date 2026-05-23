@@ -141,7 +141,7 @@ function ResetPasswordPage() {
                 required
               />
               <p className="rounded-xl border border-[var(--accent-pink)]/10 bg-[var(--accent-pink)]/[0.035] px-4 py-3 text-[11px] leading-relaxed text-[var(--text-muted)]">
-                Use uppercase, lowercase, number, and special character. This link works once and expires in 3 minutes.
+                Use uppercase, lowercase, number, and special character. This link works once and expires in 15 minutes.
               </p>
               {error && <p className="rounded-xl bg-red-500/5 px-4 py-3 text-xs text-red-500">{error}</p>}
               <Button type="submit" disabled={isSubmitting} className="w-full py-3.5 text-sm">

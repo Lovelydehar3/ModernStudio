@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import { adminNavLinks } from "../constants/navLinks";
 import { authStore } from "../store/authStore";
-import Button from "../components/ui/Button";
+import { authApi } from "../services/authApi";
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -32,10 +32,21 @@ const iconMap = {
 function AdminLayout() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleLogout = () => {
-    authStore.clearUser();
-    navigate("/admin/login");
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      // Call server to clear the httpOnly JWT cookie
+      await authApi.logout();
+    } catch {
+      // Even if the server call fails, clear client state
+    } finally {
+      authStore.clearUser();
+      setIsLoggingOut(false);
+      navigate("/admin/login", { replace: true });
+    }
   };
 
   const sidebarContent = (
@@ -51,7 +62,7 @@ function AdminLayout() {
       </div>
 
       {/* Nav */}
-      <nav className="mt-10 flex flex-col gap-1">
+      <nav className="mt-10 flex flex-col gap-1" aria-label="Admin navigation">
         {adminNavLinks.map((link) => {
           const Icon = iconMap[link.icon] || LayoutDashboard;
           return (
@@ -92,10 +103,12 @@ function AdminLayout() {
       <div className="mt-auto pt-6">
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-xl border border-[#c26dba]/10 bg-[var(--surface)] px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] transition-all duration-300 hover:border-red-500/20 hover:bg-red-500/5 hover:text-red-400"
+          disabled={isLoggingOut}
+          aria-label="Sign out of admin panel"
+          className="flex w-full items-center gap-3 rounded-xl border border-[#c26dba]/10 bg-[var(--surface)] px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] transition-all duration-300 hover:border-red-500/20 hover:bg-red-500/5 hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <LogOut className="h-4 w-4" />
-          Exit Dashboard
+          {isLoggingOut ? "Signing out..." : "Exit Dashboard"}
         </button>
       </div>
     </>
@@ -113,6 +126,9 @@ function AdminLayout() {
         </div>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={mobileOpen}
+          aria-controls="admin-mobile-sidebar"
           className="rounded-lg bg-[#c26dba]/[0.06] p-2 transition-colors hover:bg-[#c26dba]/[0.1]"
         >
           {mobileOpen ? <X className="h-5 w-5 text-[var(--text-primary)]" /> : <Menu className="h-5 w-5 text-[var(--text-primary)]" />}
@@ -124,6 +140,7 @@ function AdminLayout() {
         <div
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
           onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
         />
       )}
 
@@ -135,10 +152,12 @@ function AdminLayout() {
 
         {/* Sidebar — Mobile */}
         <aside
+          id="admin-mobile-sidebar"
           className={clsx(
             "fixed left-0 top-0 z-50 flex h-full w-[280px] flex-col overflow-y-auto border-r border-[#c26dba]/10 bg-[var(--bg-primary)]/98 p-6 backdrop-blur-2xl transition-transform duration-300 md:hidden",
             mobileOpen ? "translate-x-0" : "-translate-x-full"
           )}
+          aria-label="Admin mobile navigation"
         >
           {sidebarContent}
         </aside>

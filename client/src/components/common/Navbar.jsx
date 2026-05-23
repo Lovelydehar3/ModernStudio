@@ -131,6 +131,9 @@ function Navbar() {
             </Link>
             <button
               type="button"
+              aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={isOpen}
+              aria-controls="mobile-nav-menu"
               className="flex items-center justify-center rounded-full border border-[var(--card-border)] bg-[var(--surface)] p-2.5 text-[var(--text-primary)] transition-all duration-300 hover:bg-[var(--surface-hover)]"
               onClick={() => setIsOpen((prev) => !prev)}
             >
@@ -141,6 +144,9 @@ function Navbar() {
 
         {/* Mobile Menu */}
         <div
+          id="mobile-nav-menu"
+          role="navigation"
+          aria-label="Mobile navigation"
           className={clsx(
             "overflow-hidden transition-all duration-500 md:hidden",
             isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"

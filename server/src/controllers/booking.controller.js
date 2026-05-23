@@ -16,14 +16,12 @@ const createBooking = asyncHandler(async (req, res, next) => {
     newEnd.setDate(newEnd.getDate() + Number(days) - 1);
     newEnd.setHours(23, 59, 59, 999);
 
-    // Fetch bookings that start on or before the new booking's end date
-    // (bookings starting after newEnd can't overlap)
+    // Indexed query: only fetch bookings overlapping the requested range
     const candidates = await Booking.find({
       status: { $in: ["pending", "accepted"] },
-      eventDate: { $lte: newEnd }
+      eventDate: { $gte: new Date(newStart.getTime() - (30 * 24 * 60 * 60 * 1000)), $lte: newEnd }
     }).select("eventDate days").lean();
 
-    // Check actual overlap: existingStart <= newEnd AND existingEnd >= newStart
     const conflict = candidates.find((b) => {
       const existingStart = new Date(b.eventDate);
       existingStart.setHours(0, 0, 0, 0);
@@ -69,12 +67,17 @@ const createBooking = asyncHandler(async (req, res, next) => {
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const listBookings = asyncHandler(async (req, res) => {
-  const { status, search } = req.query;
+  const { status, search, page = 1, limit = 20 } = req.query;
   const query = {};
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+  const skip = (pageNum - 1) * limitNum;
 
-  if (status) query.status = status;
+  if (status && ["pending", "accepted", "rejected"].includes(status)) {
+    query.status = status;
+  }
   if (search) {
-    const escaped = escapeRegex(search);
+    const escaped = escapeRegex(search.trim());
     query.$or = [
       { name: { $regex: escaped, $options: "i" } },
       { email: { $regex: escaped, $options: "i" } },
@@ -82,8 +85,26 @@ const listBookings = asyncHandler(async (req, res) => {
     ];
   }
 
-  const bookings = await Booking.find(query).sort({ createdAt: -1 }).lean();
-  return ApiResponse.success(res, "Bookings fetched.", bookings, 200);
+  const [bookings, total] = await Promise.all([
+    Booking.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean(),
+    Booking.countDocuments(query)
+  ]);
+
+  return ApiResponse.success(res, "Bookings fetched.", {
+    bookings,
+    pagination: {
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+      hasNextPage: pageNum < Math.ceil(total / limitNum),
+      hasPrevPage: pageNum > 1
+    }
+  }, 200);
 });
 
 const updateBookingStatus = asyncHandler(async (req, res, next) => {
@@ -101,7 +122,7 @@ const updateBookingStatus = asyncHandler(async (req, res, next) => {
   booking.status = status;
   booking.statusHistory.push({
     status,
-    note: note || "",
+    note: (note || "").trim(),
     changedBy: req.user?.id || null,
     changedAt: new Date()
   });
@@ -136,8 +157,11 @@ const updateBooking = asyncHandler(async (req, res, next) => {
     return next(new ApiError(404, "Booking not found."));
   }
 
-  // Update provided fields
-  const allowedFields = ["name", "email", "phone", "eventType", "eventDate", "eventLocation", "days", "message", "selectedPackage", "addOns"];
+  const allowedFields = [
+    "name", "email", "phone", "eventType",
+    "eventDate", "eventLocation", "days",
+    "message", "selectedPackage", "addOns"
+  ];
   allowedFields.forEach((field) => {
     if (req.body[field] !== undefined) {
       booking[field] = req.body[field];

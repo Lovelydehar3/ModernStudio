@@ -6,16 +6,20 @@ import StatusPill from "../../components/admin/StatusPill";
 import { inquiryApi } from "../../services/inquiryApi";
 import { formatDateTime, extractApiError } from "../../lib/formatters";
 import { Trash2, Eye, MessageSquare } from "lucide-react";
+import { useToast } from "../../components/ui/ToastContext";
+import Skeleton from "../../components/ui/Skeleton";
 
 const STATUS_FILTERS = ["all", "unresolved", "resolved"];
 
 function InquiriesPage() {
+  const { showToast } = useToast();
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedInquiry, setSelectedInquiry] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [adminNotes, setAdminNotes] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const fetchRows = async () => {
     try {
@@ -24,7 +28,7 @@ function InquiriesPage() {
       const response = await inquiryApi.getAdmin(params);
       setRows(response.data.data);
     } catch (error) {
-      window.alert(extractApiError(error));
+      showToast(extractApiError(error), "error");
     } finally {
       setIsLoading(false);
     }
@@ -37,9 +41,10 @@ function InquiriesPage() {
   const toggleResolve = async (row) => {
     try {
       await inquiryApi.resolve(row._id, { isResolved: !row.isResolved });
+      showToast("Inquiry status updated", "success");
       await fetchRows();
     } catch (error) {
-      window.alert(extractApiError(error));
+      showToast(extractApiError(error), "error");
     }
   };
 
@@ -57,19 +62,26 @@ function InquiriesPage() {
         adminNotes
       });
       setDrawerOpen(false);
+      showToast("Notes saved successfully", "success");
       await fetchRows();
     } catch (error) {
-      window.alert(extractApiError(error));
+      showToast(extractApiError(error), "error");
     }
   };
 
-  const handleDelete = async (row) => {
-    if (!window.confirm(`Delete inquiry from ${row.name}?`)) return;
+  const handleDeleteClick = (row) => {
+    setDeleteTarget(row);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
     try {
-      await inquiryApi.remove(row._id);
+      await inquiryApi.remove(deleteTarget._id);
+      showToast("Inquiry deleted successfully", "success");
+      setDeleteTarget(null);
       await fetchRows();
     } catch (error) {
-      window.alert(extractApiError(error));
+      showToast(extractApiError(error), "error");
     }
   };
 
@@ -101,7 +113,22 @@ function InquiriesPage() {
       </div>
 
       {isLoading ? (
-        <Card>Loading inquiries...</Card>
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 rounded-xl border border-[var(--accent-pink)]/10 bg-[var(--surface)] p-4">
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-1/4" />
+                <Skeleton className="h-3 w-1/3" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-8 w-12 rounded-lg" />
+                <Skeleton className="h-8 w-16 rounded-lg" />
+                <Skeleton className="h-8 w-8 rounded-lg" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : rows.length === 0 ? (
         <Card>
           <div className="flex flex-col items-center gap-3 py-10 text-center">
@@ -141,7 +168,7 @@ function InquiriesPage() {
                   {row.isResolved ? "Reopen" : "Resolve"}
                 </button>
                 <button
-                  onClick={() => handleDelete(row)}
+                  onClick={() => handleDeleteClick(row)}
                   className="rounded-lg border border-red-200 p-2 text-red-300 transition-all hover:border-red-300 hover:text-red-500"
                   title="Delete"
                 >
@@ -204,6 +231,33 @@ function InquiriesPage() {
           </div>
         )}
       </CrudFormDrawer>
+
+      {/* Delete Confirmation Modal — replaces window.confirm() */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} aria-hidden="true" />
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6 shadow-2xl">
+            <h3 className="font-heading text-xl uppercase tracking-wider text-[var(--text-primary)]">Delete Inquiry</h3>
+            <p className="mt-3 text-sm text-[var(--text-secondary)]">
+              Are you sure you want to delete the inquiry from <strong className="text-[var(--text-primary)]">{deleteTarget.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 rounded-xl border border-[var(--card-border)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-all duration-300 hover:bg-[var(--card-border)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="flex-1 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-red-400 transition-all duration-300 hover:bg-red-500/20"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

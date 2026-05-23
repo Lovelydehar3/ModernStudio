@@ -15,8 +15,11 @@ function DataTable({ columns = [], rows = [], emptyLabel = "No records found." }
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-5 py-10 text-center text-[var(--text-muted)]">
-                  {emptyLabel}
+                <td colSpan={columns.length} className="px-5 py-16 text-center text-[var(--text-muted)]">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <span className="text-3xl" role="img" aria-label="No data">📭</span>
+                    <p className="max-w-md mx-auto text-sm leading-relaxed">{emptyLabel}</p>
+                  </div>
                 </td>
               </tr>
             ) : (

@@ -111,7 +111,7 @@ async function sendPasswordResetEmail(to, resetUrl) {
         </div>
         <div style="padding:32px 24px;">
           <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 24px;">
-            Use this secure link to reset your password. It expires in 3 minutes and can be used only once.
+          Use this secure link to reset your password. It expires in 15 minutes and can be used only once.
           </p>
           <p style="margin:0 0 28px;text-align:center;">
             <a href="${resetUrl}" style="display:inline-block;background:#1F1F1F;color:#ffffff;text-decoration:none;border-radius:999px;padding:14px 24px;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">
