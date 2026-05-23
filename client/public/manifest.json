@@ -1,0 +1,16 @@
+{
+  "name": "Modern Wedding Studios",
+  "short_name": "MWS",
+  "description": "Cinematic wedding films, model portfolios, and editorial photography by Arun.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#c26dba",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

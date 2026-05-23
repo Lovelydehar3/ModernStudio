@@ -1,0 +1,21 @@
+{
+  "name": "modern-studio",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Modern Wedding Studios - Cinematic Wedding Films & Portrait Photography",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "start:server": "npm run start --prefix server",
+    "build:client": "npm run build --prefix client",
+    "build": "npm run build --prefix client",
+    "start": "npm run start --prefix server",
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
+    "seed": "node server/src/scripts/seedMedia.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "sharp": "^0.34.5"
+  }
+}

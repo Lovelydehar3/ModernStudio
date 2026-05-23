@@ -1,0 +1,10 @@
+node_modules
+.env
+*.log
+uploads/
+media/
+dist/
+build/
+.git
+.vscode
+.openclaude

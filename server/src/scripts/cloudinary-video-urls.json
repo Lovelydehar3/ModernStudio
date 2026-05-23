@@ -1,0 +1,66 @@
+{
+  "/media/videos/film-01.mp4": {
+    "originalFile": "film-01.mp4",
+    "localPath": "/media/videos/film-01.mp4",
+    "secure_url": "https://res.cloudinary.com/dkaiwzkxz/video/upload/v1779214406/modern-wedding-stories/videos/film-01.mp4",
+    "public_id": "modern-wedding-stories/videos/film-01",
+    "bytes": 2325366,
+    "duration": 11.882
+  },
+  "/media/videos/film-02.mp4": {
+    "originalFile": "film-02.mp4",
+    "localPath": "/media/videos/film-02.mp4",
+    "secure_url": "https://res.cloudinary.com/dkaiwzkxz/video/upload/v1779214494/modern-wedding-stories/videos/film-02.mp4",
+    "public_id": "modern-wedding-stories/videos/film-02",
+    "bytes": 6391278,
+    "duration": 34.922
+  },
+  "/media/videos/ref-01.mp4": {
+    "originalFile": "ref-01.mp4",
+    "localPath": "/media/videos/ref-01.mp4",
+    "secure_url": "https://res.cloudinary.com/dkaiwzkxz/video/upload/v1779214517/modern-wedding-stories/videos/ref-01.mp4",
+    "public_id": "modern-wedding-stories/videos/ref-01",
+    "bytes": 1912463,
+    "duration": 52.84
+  },
+  "/media/videos/ref-02.mp4": {
+    "originalFile": "ref-02.mp4",
+    "localPath": "/media/videos/ref-02.mp4",
+    "secure_url": "https://res.cloudinary.com/dkaiwzkxz/video/upload/v1779214540/modern-wedding-stories/videos/ref-02.mp4",
+    "public_id": "modern-wedding-stories/videos/ref-02",
+    "bytes": 1912463,
+    "duration": 52.84
+  },
+  "/media/videos/ref-03.mp4": {
+    "originalFile": "ref-03.mp4",
+    "localPath": "/media/videos/ref-03.mp4",
+    "secure_url": "https://res.cloudinary.com/dkaiwzkxz/video/upload/v1779214562/modern-wedding-stories/videos/ref-03.mp4",
+    "public_id": "modern-wedding-stories/videos/ref-03",
+    "bytes": 3826829,
+    "duration": 37.32
+  },
+  "/media/videos/sequence-01.mp4": {
+    "originalFile": "Sequence 01_1.mp4",
+    "localPath": "/media/videos/sequence-01.mp4",
+    "secure_url": "https://res.cloudinary.com/dkaiwzkxz/video/upload/v1779248653/modern-wedding-stories/videos/sequence-01.mp4",
+    "public_id": "modern-wedding-stories/videos/sequence-01",
+    "bytes": 6734592,
+    "duration": 34.922
+  },
+  "/media/videos/song-01.mp4": {
+    "originalFile": "Song1 (1).mp4",
+    "localPath": "/media/videos/song-01.mp4",
+    "secure_url": "https://res.cloudinary.com/dkaiwzkxz/video/upload/v1779248755/modern-wedding-stories/videos/song-01.mp4",
+    "public_id": "modern-wedding-stories/videos/song-01",
+    "bytes": 11922605,
+    "duration": 94.805
+  },
+  "/media/videos/wedding-01.mp4": {
+    "originalFile": "01_1.mp4",
+    "localPath": "/media/videos/wedding-01.mp4",
+    "secure_url": "https://res.cloudinary.com/dkaiwzkxz/video/upload/v1779248579/modern-wedding-stories/videos/wedding-01.mp4",
+    "public_id": "modern-wedding-stories/videos/wedding-01",
+    "bytes": 2384394,
+    "duration": 11.882
+  }
+}
